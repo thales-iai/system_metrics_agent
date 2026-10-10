@@ -1,0 +1,17 @@
+FROM python:3.12-slim-bookworm AS builder
+WORKDIR /build
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+FROM python:3.12-slim-bookworm
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+# la commande "uptime" est fournie par le paquet procps (absent de l'image slim)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends procps \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd -r app && useradd -r -g app -d /app app
+WORKDIR /app
+COPY --from=builder /install /usr/local
+COPY app/ ./app/
+USER app
+CMD ["python", "-m", "app.agent"]

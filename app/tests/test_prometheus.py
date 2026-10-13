@@ -16,3 +16,10 @@ def test_prometheus_endpoint_exposes_agent_metrics():
     response = TestClient(app).get("/prometheus")
     assert response.status_code == 200
     assert 'agent_cpu_percent{hostname="test"} 12.5' in response.text
+
+def test_post_metrics_with_incomplete_data_still_accepted():
+    response = TestClient(app).post(
+        "/metrics",
+        json={"agent": "test", "event_type": "system_metrics", "data": {}},
+    )
+    assert response.status_code == 201

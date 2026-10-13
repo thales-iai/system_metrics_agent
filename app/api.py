@@ -1,16 +1,15 @@
 """API FastAPI de réception des métriques."""
 from __future__ import annotations
-from fastapi import Response
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-
-from app.prometheus_metrics import update_gauges
 
 import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Response, status
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field
+
+from app.prometheus_metrics import update_gauges
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,6 +39,7 @@ def get_metrics() -> dict[str, Any]:
         "metrics": received_metrics,
     }
 
+
 @app.get("/health")
 def health() -> dict[str, str]:
     """Vérifie l'état de l'API."""
@@ -54,6 +54,14 @@ def receive_metrics(payload: MetricsPayload) -> dict[str, Any]:
         **payload.model_dump(),
     }
     received_metrics.append(item)
+
+    try:
+        update_gauges(payload.data)
+    except (KeyError, TypeError):
+        logger.warning(
+            "Métriques de %s incomplètes : jauges Prometheus non mises à jour.",
+            payload.agent,
+        )
 
     logger.info(
         "Métriques reçues de %s. Total=%s",
@@ -82,4 +90,5 @@ def latest_metrics() -> dict[str, Any]:
 
 @app.get("/prometheus")
 def prometheus_metrics() -> Response:
+    """Expose les métriques de l'agent au format Prometheus."""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

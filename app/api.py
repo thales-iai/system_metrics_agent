@@ -59,8 +59,7 @@ def receive_metrics(payload: MetricsPayload) -> dict[str, Any]:
         update_gauges(payload.data)
     except (KeyError, TypeError):
         logger.warning(
-            "Métriques de %s incomplètes : jauges Prometheus non mises à jour.",
-            payload.agent,
+            "Métriques incomplètes reçues : jauges Prometheus non mises à jour."
         )
 
     logger.info(

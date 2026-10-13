@@ -1,5 +1,9 @@
 """API FastAPI de réception des métriques."""
 from __future__ import annotations
+from fastapi import Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+from app.prometheus_metrics import update_gauges
 
 import logging
 from datetime import datetime, timezone
@@ -74,3 +78,8 @@ def latest_metrics() -> dict[str, Any]:
         )
 
     return received_metrics[-1]
+
+
+@app.get("/prometheus")
+def prometheus_metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
